@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vidcourse - Premium Video Learning</title>
+    <link rel="icon" type="image/jpeg" href="/favicon.jpg" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#2563eb" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="apple-touch-icon" href="/icon-192.jpg" />
+    <script>
+      // Register Service Worker for PWA
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then(reg => console.log('[Service Worker] Registered successfully:', reg.scope))
+            .catch(err => console.error('[Service Worker] Registration failed:', err));
+        });
+      }
+
+      // Global error handler to suppress harmless third-party / iframe script errors (like Paystack)
+      window.addEventListener('error', function(e) {
+        if (e.message === 'Script error.' || e.message?.includes('PaystackPop') || (e.filename && !e.filename.includes(window.location.host))) {
+          e.stopImmediatePropagation();
+          e.preventDefault();
+          return true;
+        }
+      }, true);
+      window.onerror = function(message, source, lineno, colno, error) {
+        if (message === 'Script error.' || (message && message.toString().includes('PaystackPop')) || (source && !source.includes(window.location.host))) {
+          return true;
+        }
+      };
+    </script>
+    <script src="https://js.paystack.co/v1/inline.js" crossorigin="anonymous"></script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+

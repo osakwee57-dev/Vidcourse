@@ -1,0 +1,37 @@
+{
+  "name": "Vidcourse - Premium Video Learning",
+  "short_name": "Vidcourse",
+  "description": "Unlock premium technology and architecture video courses, offline resources, and structured curriculum.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#2563eb",
+  "orientation": "portrait-primary",
+  "categories": ["education", "utilities"],
+  "icons": [
+    {
+      "src": "/icon-192.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon-512.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "maskable"
+    }
+  ]
+}

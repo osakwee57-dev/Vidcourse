@@ -1,0 +1,8 @@
+{
+  "name": "vid.course",
+  "description": "A sleek, modern video stream platform for educational courses and lectures with database storage.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
