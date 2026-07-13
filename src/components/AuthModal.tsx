@@ -93,7 +93,7 @@ export default function AuthModal({ onAuthSuccess }: AuthModalProps) {
         <div className="text-center space-y-1.5 mb-6">
           <div className="flex items-center justify-center gap-2.5 mb-1">
             <img 
-              src="/src/assets/images/vidcourse_app_icon_1783867764232.jpg" 
+              src="/logo.png" 
               alt="Vidcourse Logo" 
               referrerPolicy="no-referrer"
               className="w-9 h-9 rounded-xl object-cover shadow-md border border-slate-100"

@@ -2,9 +2,9 @@ const CACHE_NAME = 'vidcourse-pwa-cache-v1';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
-  '/favicon.jpg',
-  '/icon-192.jpg',
-  '/icon-512.jpg',
+  '/favicon.ico',
+  '/icon-192.png',
+  '/icon-512.png',
   '/manifest.json'
 ];
 
@@ -66,7 +66,7 @@ self.addEventListener('fetch', (event) => {
           return networkResponse;
         }).catch(() => {
           // If offline and request is an image, we could serve a placeholder
-          return caches.match('/favicon.jpg');
+          return caches.match('/favicon.ico');
         });
       })
     );

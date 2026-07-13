@@ -293,7 +293,7 @@ export default function App() {
             className="flex items-center gap-2 cursor-pointer select-none"
           >
             <img 
-              src="/src/assets/images/vidcourse_app_icon_1783867764232.jpg" 
+              src="/logo.png" 
               alt="Vidcourse Logo" 
               referrerPolicy="no-referrer"
               className="w-8 h-8 rounded-lg object-cover shadow-sm border border-slate-100"
