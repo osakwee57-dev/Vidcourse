@@ -212,15 +212,25 @@ export default function App() {
   };
 
   const runDownloadRequirements = (youtubeId: string) => {
-    console.log("Checking conditions for video target ID:", youtubeId);
-    const videoObj = videos.find(v => v.youtube_id === youtubeId);
-    const videoTitle = videoObj ? videoObj.video_name : "Lecture Video";
+    const activeUserSession = user;
+    if (!activeUserSession) {
+      alert("Please log in to your account first!");
+      return;
+    }
+
+    const now = new Date();
+    const premiumExpiry = activeUserSession.premium_until ? new Date(activeUserSession.premium_until) : null;
+
+    if (!activeUserSession.is_premium || (premiumExpiry && now > premiumExpiry)) {
+      alert("📥 Premium Feature Only!\n\nThis video download is locked. Please pay the monthly subscription fee to unlock direct device saving.");
+      return;
+    }
+
+    // SUCCESS: Open a functional external video downloader page with the specific video loaded
+    alert("🚀 Subscription verified! Opening the video download terminal...");
     
-    setNotification({
-      type: "success",
-      title: "📥 Download Initiated",
-      text: `Title: ${videoTitle}\nTarget ID: ${youtubeId}\n\nPreparing high-definition offline MP4 streams and compiled curriculum study guides! Check your browser downloads.`
-    });
+    // This dynamically routes them to an online downloader engine with the exact video preloaded
+    window.open(`https://www.youtubepp.com/watch?v=${youtubeId}`, '_blank');
   };
 
   // Memoized categories compiled directly from active curriculum playlist
