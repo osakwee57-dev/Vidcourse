@@ -348,6 +348,7 @@ export default function App() {
             className="flex items-center gap-2 cursor-pointer select-none"
           >
             <img 
+              id="navLogoImage"
               src="/logo.png" 
               alt="Vidcourse Logo" 
               referrerPolicy="no-referrer"
