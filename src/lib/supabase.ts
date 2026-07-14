@@ -382,5 +382,61 @@ export const dbService = {
     localPlaylist = localPlaylist.filter(id => id !== youtubeId);
     localStorage.setItem(playlistKey, JSON.stringify(localPlaylist));
     return true;
+  },
+
+  async fetchComments(videoId: string): Promise<{ comments: any[]; error: string | null; isFallback: boolean }> {
+    try {
+      const { data, error } = await supabase
+        .from('video_comments')
+        .select('*')
+        .eq('video_id', videoId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        throw error;
+      }
+
+      return { comments: data || [], error: null, isFallback: false };
+    } catch (e: any) {
+      console.warn("Supabase fetch comments failed, trying local storage fallback", e);
+      const allComments = JSON.parse(localStorage.getItem("vid_course_comments") || "[]");
+      const filteredComments = allComments.filter((c: any) => c.video_id === videoId);
+      return { comments: filteredComments, error: null, isFallback: true };
+    }
+  },
+
+  async addComment(videoId: string, username: string, text: string): Promise<{ comment: any | null; error: string | null; isFallback: boolean }> {
+    const newComment = {
+      video_id: videoId,
+      username: username,
+      comment_text: text,
+      created_at: new Date().toISOString()
+    };
+
+    try {
+      const { data, error } = await supabase
+        .from('video_comments')
+        .insert([newComment])
+        .select();
+
+      if (error) {
+        throw error;
+      }
+
+      return { comment: data ? data[0] : newComment, error: null, isFallback: false };
+    } catch (e: any) {
+      console.warn("Supabase add comment failed, storing locally", e);
+      
+      const fallbackComment = {
+        id: "local_comment_" + Math.random().toString(36).substr(2, 9),
+        ...newComment
+      };
+
+      const allComments = JSON.parse(localStorage.getItem("vid_course_comments") || "[]");
+      allComments.unshift(fallbackComment);
+      localStorage.setItem("vid_course_comments", JSON.stringify(allComments));
+
+      return { comment: fallbackComment, error: null, isFallback: true };
+    }
   }
 };

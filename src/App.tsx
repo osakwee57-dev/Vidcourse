@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from "motion/react";
 import { 
   GraduationCap, Plus, Search, Sparkles, Filter, 
   CheckCircle2, ListVideo, Compass, BookOpen, Heart, 
-  WifiOff, Database, ArrowRight, Play, Info, Check 
+  WifiOff, Database, ArrowRight, Play, Info, Check,
+  ChevronDown, ChevronUp
 } from "lucide-react";
 
 import { dbService, DEFAULT_VIDEOS } from "./lib/supabase";
@@ -45,6 +46,50 @@ export default function App() {
     onConfirm?: () => void;
     onCancel?: () => void;
   } | null>(null);
+
+  // Discussion comments states
+  const [comments, setComments] = useState<{ id?: string; video_id: string; username: string; comment_text: string; created_at: string }[]>([]);
+  const [commentText, setCommentText] = useState("");
+  const [showAllComments, setShowAllComments] = useState(false);
+
+  // Load classroom comments when activeVideo changes
+  useEffect(() => {
+    setShowAllComments(false);
+    if (!activeVideo) {
+      setComments([]);
+      return;
+    }
+    const loadComments = async () => {
+      const videoId = String(activeVideo.youtube_id);
+      const { comments: fetchedComments } = await dbService.fetchComments(videoId);
+      setComments(fetchedComments);
+    };
+    loadComments();
+  }, [activeVideo]);
+
+  const handlePostComment = async () => {
+    if (!user) {
+      alert("Please log in to your account first!");
+      return;
+    }
+    const text = commentText.trim();
+    if (!text) return;
+
+    if (!activeVideo) return;
+
+    const videoId = String(activeVideo.youtube_id);
+    const { comment, error } = await dbService.addComment(videoId, user.username, text);
+    
+    if (error) {
+      alert("Could not post comment: " + error);
+      return;
+    }
+
+    if (comment) {
+      setComments(prev => [comment, ...prev]);
+      setCommentText("");
+    }
+  };
 
   // 1. Initial Authentication Check
   useEffect(() => {
@@ -358,113 +403,180 @@ export default function App() {
 
       {/* 3. Main Workspace Area */}
       {user && (
-        <main className="max-w-6xl mx-auto p-4 grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
-          
-          {/* LEFT/CENTER AREA: Video Player and Title details (md:col-span-2) */}
-          <div className="md:col-span-2 md:sticky md:top-20 space-y-4">
+        <main className="max-w-6xl mx-auto p-4 grid grid-cols-1 md:grid-cols-3 gap-6 items-start">          {/* LEFT/CENTER AREA: Video Player and Title details (md:col-span-2) */}
+          <div className="md:col-span-2 md:sticky md:top-20 space-y-6">
             
-            {activeVideo ? (
-              <div className="space-y-4">
-                <div id="videoTheater" className="bg-black w-full aspect-video rounded-2xl shadow-lg overflow-hidden border border-gray-800 relative group">
-                  {activeVideoIsLocked ? (
-                    /* Lock screen for non-premium accounts requesting a premium-locked video */
-                    <div className="absolute inset-0 bg-slate-950 flex flex-col items-center justify-center text-center p-6 space-y-4 z-10">
-                      <div className="bg-amber-100/10 p-4 rounded-full text-amber-500 border border-amber-500/20 animate-pulse">
-                        <Sparkles className="w-8 h-8 fill-amber-500" />
+            {/* 1. Video Theater Player Container */}
+            <div 
+              id="videoTheater" 
+              className={`bg-black w-full aspect-video rounded-2xl shadow-lg overflow-hidden border border-gray-800 relative group ${!activeVideo ? 'hidden' : ''}`}
+            >
+              {activeVideoIsLocked ? (
+                /* Lock screen for non-premium accounts requesting a premium-locked video */
+                <div className="absolute inset-0 bg-slate-950 flex flex-col items-center justify-center text-center p-6 space-y-4 z-10">
+                  <div className="bg-amber-100/10 p-4 rounded-full text-amber-500 border border-amber-500/20 animate-pulse">
+                    <Sparkles className="w-8 h-8 fill-amber-500" />
+                  </div>
+                  <div className="space-y-1.5 max-w-sm">
+                    <h4 className="text-white font-display font-black text-lg tracking-tight">💎 Premium Lecture Locked</h4>
+                    <p className="text-xs text-slate-400 leading-relaxed">
+                      This exclusive lecture requires a **Premium Account Status** to access resources, transcripts, and screen feeds.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      updateNotesCount();
+                      setIsProfileOpen(true);
+                    }}
+                    className="bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold text-xs py-2 px-5 rounded-lg shadow-md hover:scale-102 transition cursor-pointer"
+                  >
+                    Unlock Premium (Toggle in Profile Drawer)
+                  </button>
+                </div>
+              ) : (
+                /* The real iframe Youtube video container */
+                activeVideo && (
+                  <iframe
+                    id="playerIframe"
+                    className="w-full h-full"
+                    src={`https://www.youtube.com/embed/${activeVideo.youtube_id}?autoplay=0&rel=0&modestbranding=1`}
+                    title={activeVideo.video_name}
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    sandbox="allow-scripts allow-same-origin allow-presentation"
+                    allowFullScreen
+                  />
+                )
+              )}
+            </div>
+
+            {/* 2. Video Placeholder container */}
+            <div 
+              id="videoPlaceholder" 
+              className={`bg-gray-800 text-gray-400 aspect-video rounded-2xl flex flex-col items-center justify-center p-6 text-center border border-gray-700 ${activeVideo ? 'hidden' : ''}`}
+            >
+              <svg className="w-12 h-12 mb-2 text-gray-500" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                <path d="M15.91 11.672a.375.375 0 010 .656l-5.603 3.113a.375.375 0 01-.557-.328V8.887c0-.286.307-.466.557-.327l5.603 3.112z"></path>
+              </svg>
+              <p className="text-sm font-medium">Select a lecture from the feed list to start watching</p>
+            </div>
+
+            {/* 3. Classroom Discussion panel */}
+            <div 
+              id="discussionPanel" 
+              className={`bg-white p-6 rounded-2xl border border-gray-200 shadow-xs space-y-4 ${!activeVideo ? 'hidden' : ''}`}
+            >
+              <h3 className="text-base font-bold text-gray-900 tracking-tight flex items-center space-x-2">
+                <span>💬</span> <span>Classroom Discussion</span>
+              </h3>
+              
+              <div className="flex space-x-3 items-start">
+                <div className="flex-1">
+                  <textarea 
+                    id="commentTextArea" 
+                    rows={2} 
+                    placeholder="Ask a question or leave a note about this lecture..." 
+                    value={commentText}
+                    onChange={(e) => setCommentText(e.target.value)}
+                    className="w-full p-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 text-gray-800 resize-none"
+                  />
+                </div>
+                <button 
+                  id="postCommentBtn" 
+                  onClick={handlePostComment}
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-4 py-3 rounded-xl shadow-xs transition cursor-pointer self-end shrink-0"
+                >
+                  Comment
+                </button>
+              </div>
+
+              <div id="commentsFeedWrapper" className="space-y-3 pt-2 max-h-64 overflow-y-auto divide-y divide-gray-50">
+                {comments.length === 0 ? (
+                  <p className="text-xs text-gray-400 italic">No comments posted on this thread yet.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {(showAllComments ? comments : comments.slice(0, 3)).map((comment, index) => (
+                      <div key={comment.id || `${comment.created_at}_${index}`} className="pt-3 first:pt-0">
+                        <div className="flex items-center justify-between text-[10px] text-slate-500 mb-1">
+                          <span className="font-bold text-blue-600">@{comment.username}</span>
+                          <span className="font-mono text-[9px]">
+                            {new Date(comment.created_at).toLocaleDateString()} {new Date(comment.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-700 leading-relaxed break-words whitespace-pre-wrap">{comment.comment_text}</p>
                       </div>
-                      <div className="space-y-1.5 max-w-sm">
-                        <h4 className="text-white font-display font-black text-lg tracking-tight">💎 Premium Lecture Locked</h4>
-                        <p className="text-xs text-slate-400 leading-relaxed">
-                          This exclusive lecture requires a **Premium Account Status** to access resources, transcripts, and screen feeds.
-                        </p>
+                    ))}
+
+                    {comments.length > 3 && (
+                      <div className="pt-2 flex justify-center">
+                        <button
+                          onClick={() => setShowAllComments(!showAllComments)}
+                          className="flex items-center gap-1.5 text-[11px] text-blue-600 hover:text-blue-700 font-bold transition focus:outline-none cursor-pointer py-1.5 px-3 bg-blue-50/50 hover:bg-blue-50 rounded-lg border border-blue-100/50"
+                        >
+                          <span>{showAllComments ? "Show Less" : `Show More (${comments.length - 3})`}</span>
+                          {showAllComments ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                        </button>
                       </div>
-                      <button
-                        onClick={() => {
-                          updateNotesCount();
-                          setIsProfileOpen(true);
-                        }}
-                        className="bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold text-xs py-2 px-5 rounded-lg shadow-md hover:scale-102 transition cursor-pointer"
-                      >
-                        Unlock Premium (Toggle in Profile Drawer)
-                      </button>
-                    </div>
-                  ) : (
-                    /* The real iframe Youtube video container */
-                    <iframe
-                      id="playerIframe"
-                      className="w-full h-full animate-fade-in"
-                      src={`https://www.youtube.com/embed/${activeVideo.youtube_id}?autoplay=0&rel=0&modestbranding=1`}
-                      title={activeVideo.video_name}
-                      frameBorder="0"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                    />
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* 4. Active Video Details Title block & actions */}
+            {activeVideo && (
+              <div className="bg-white rounded-2xl border border-slate-200 p-5 space-y-3.5 shadow-2xs">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="px-2 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-bold rounded uppercase border border-blue-100 font-mono">
+                    {activeVideo.category || "General"}
+                  </span>
+                  <span className="text-slate-300">•</span>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono">
+                    Duration: {activeVideo.duration || "15:00"}
+                  </span>
+                  {activeVideo.is_premium_only && (
+                    <>
+                      <span className="text-slate-300">•</span>
+                      <span className="text-[10px] bg-amber-50 text-amber-700 font-bold uppercase tracking-widest font-mono px-2 py-0.5 rounded border border-amber-100 flex items-center gap-0.5">
+                        💎 Premium
+                      </span>
+                    </>
                   )}
                 </div>
 
-                {/* Active Video Details Title block */}
-                <div className="bg-white rounded-2xl border border-slate-200 p-5 space-y-3.5 shadow-2xs">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="px-2 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-bold rounded uppercase border border-blue-100 font-mono">
-                      {activeVideo.category || "General"}
-                    </span>
-                    <span className="text-slate-300">•</span>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono">
-                      Duration: {activeVideo.duration || "15:00"}
-                    </span>
-                    {activeVideo.is_premium_only && (
+                <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight leading-snug">
+                  {activeVideo.video_name}
+                </h2>
+
+                <p className="text-xs sm:text-sm text-slate-500 leading-relaxed max-w-2xl">
+                  Master industry standards and core architectural layers with this lecture sequence. We explore real-world scaling, trade-offs, and deployable production code to harden system design pipelines.
+                </p>
+
+                {/* Completion Switcher / Timestamp */}
+                <div className="pt-3.5 border-t border-slate-100 flex items-center justify-between gap-4 text-xs font-medium text-slate-400">
+                  <span className="text-[10px] font-mono">Published on {new Date(activeVideo.uploaded_at).toLocaleDateString()}</span>
+                  <button
+                    onClick={() => handleToggleComplete(activeVideo.youtube_id)}
+                    className={`px-3 py-1.5 rounded-lg font-bold text-[10px] flex items-center space-x-1.5 transition cursor-pointer select-none border uppercase tracking-wider font-mono ${
+                      activeVideoCompleted
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
+                        : "bg-slate-50 hover:bg-slate-100 text-slate-600 border-slate-200"
+                    }`}
+                  >
+                    {activeVideoCompleted ? (
                       <>
-                        <span className="text-slate-300">•</span>
-                        <span className="text-[10px] bg-amber-50 text-amber-700 font-bold uppercase tracking-widest font-mono px-2 py-0.5 rounded border border-amber-100 flex items-center gap-0.5">
-                          💎 Premium
-                        </span>
+                        <Check className="w-3.5 h-3.5 stroke-[3]" />
+                        <span>Completed</span>
+                      </>
+                    ) : (
+                      <>
+                        <div className="w-3 h-3 rounded-full border-2 border-slate-300" />
+                        <span>Mark Finished</span>
                       </>
                     )}
-                  </div>
-
-                  <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight leading-snug">
-                    {activeVideo.video_name}
-                  </h2>
-
-                  <p className="text-xs sm:text-sm text-slate-500 leading-relaxed max-w-2xl">
-                    Master industry standards and core architectural layers with this lecture sequence. We explore real-world scaling, trade-offs, and deployable production code to harden system design pipelines.
-                  </p>
-
-                  {/* Completion Switcher / Timestamp */}
-                  <div className="pt-3.5 border-t border-slate-100 flex items-center justify-between gap-4 text-xs font-medium text-slate-400">
-                    <span className="text-[10px] font-mono">Published on {new Date(activeVideo.uploaded_at).toLocaleDateString()}</span>
-                    <button
-                      onClick={() => handleToggleComplete(activeVideo.youtube_id)}
-                      className={`px-3 py-1.5 rounded-lg font-bold text-[10px] flex items-center space-x-1.5 transition cursor-pointer select-none border uppercase tracking-wider font-mono ${
-                        activeVideoCompleted
-                          ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
-                          : "bg-slate-50 hover:bg-slate-100 text-slate-600 border-slate-200"
-                      }`}
-                    >
-                      {activeVideoCompleted ? (
-                        <>
-                          <Check className="w-3.5 h-3.5 stroke-[3]" />
-                          <span>Completed</span>
-                        </>
-                      ) : (
-                        <>
-                          <div className="w-3 h-3 rounded-full border-2 border-slate-300" />
-                          <span>Mark Finished</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
+                  </button>
                 </div>
-              </div>
-            ) : (
-              /* Custom styled placeholder matching user template */
-              <div id="videoPlaceholder" className="bg-slate-900 text-slate-300 aspect-video rounded-2xl flex flex-col items-center justify-center p-6 text-center border border-slate-800 shadow-md">
-                <svg className="w-12 h-12 mb-3 text-slate-500" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                  <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  <path d="M15.91 11.672a.375.375 0 010 .656l-5.603 3.113a.375.375 0 01-.557-.328V8.887c0-.286.307-.466.557-.327l5.603 3.112z" />
-                </svg>
-                <p className="text-sm font-semibold tracking-tight">Select a lecture from the feed list to start watching</p>
-                <p className="text-[11px] text-slate-500 mt-1 max-w-xs">Maximize your skills by following organized curriculum modules below.</p>
               </div>
             )}
 
