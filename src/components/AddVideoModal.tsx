@@ -9,9 +9,19 @@ interface AddVideoModalProps {
   onVideoAdded: (video: Video) => void;
 }
 
-// Function to extract youtube id from various URL formats
+// Function to extract youtube id or playlist id from various URL formats
 function extractYoutubeId(url: string): string {
   const trimmed = url.trim();
+  if (trimmed.startsWith("playlist:")) {
+    return trimmed;
+  }
+  // Try to extract playlist id first from list= parameter
+  if (trimmed.includes("list=")) {
+    const listMatch = trimmed.match(/[&?]list=([^&#]+)/);
+    if (listMatch) {
+      return "playlist:" + listMatch[1];
+    }
+  }
   if (trimmed.length === 11) {
     return trimmed; // already just the ID
   }
@@ -57,8 +67,8 @@ export default function AddVideoModal({ onClose, onVideoAdded }: AddVideoModalPr
     }
 
     const youtubeId = extractYoutubeId(rawId);
-    if (youtubeId.length !== 11) {
-      setError("Invalid YouTube ID. It must be exactly 11 characters long.");
+    if (!youtubeId.startsWith("playlist:") && youtubeId.length !== 11) {
+      setError("Invalid YouTube ID. It must be exactly 11 characters long for standard videos, or contain a playlist ID.");
       return;
     }
 
@@ -142,18 +152,18 @@ export default function AddVideoModal({ onClose, onVideoAdded }: AddVideoModalPr
           {/* YouTube link or ID */}
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5 font-mono">
-              YouTube Link or Video ID
+              YouTube Link, Video ID, or Playlist ID
             </label>
             <input
               type="text"
               required
-              placeholder="e.g. https://www.youtube.com/watch?v=81P_K8v_XbM or 81P_K8v_XbM"
+              placeholder="e.g. YouTube watch URL, playlist URL, or playlist ID"
               value={youtubeUrl}
               onChange={(e) => setYoutubeUrl(e.target.value)}
               className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 text-sm text-slate-800 font-mono"
             />
             <p className="text-[10px] text-slate-400 mt-1 font-mono">
-              Supports standard watch links, share shorts, embed codes, or raw 11-char IDs.
+              Supports watch links, playlist URLs (e.g., list=PL...), or prefix with playlist:ID
             </p>
           </div>
 

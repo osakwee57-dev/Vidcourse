@@ -29,6 +29,7 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [completeFilter, setCompleteFilter] = useState("All"); // All, Completed, Uncompleted
+  const [lectureTypeFilter, setLectureTypeFilter] = useState<"All" | "Normal" | "Playlist">("All"); // All, Normal, Playlist
 
   // Modal / Drawer toggles
   const [isAddVideoOpen, setIsAddVideoOpen] = useState(false);
@@ -303,9 +304,15 @@ export default function App() {
                                 (completeFilter === "Completed" && isCompleted) ||
                                 (completeFilter === "Incomplete" && !isCompleted);
 
-      return matchesSearch && matchesCategory && matchesCompletion;
+      // Lecture Type filtering (playlist vs normal)
+      const isPlaylist = video.youtube_id.startsWith("playlist:");
+      const matchesType = lectureTypeFilter === "All" ||
+                          (lectureTypeFilter === "Playlist" && isPlaylist) ||
+                          (lectureTypeFilter === "Normal" && !isPlaylist);
+
+      return matchesSearch && matchesCategory && matchesCompletion && matchesType;
     });
-  }, [videos, searchQuery, selectedCategory, completeFilter, watchHistory]);
+  }, [videos, searchQuery, selectedCategory, completeFilter, lectureTypeFilter, watchHistory]);
 
   const activeVideoCompleted = useMemo(() => {
     if (!activeVideo) return false;
@@ -410,7 +417,7 @@ export default function App() {
             {/* 1. Video Theater Player Container */}
             <div 
               id="videoTheater" 
-              className={`bg-black w-full aspect-video rounded-2xl shadow-lg overflow-hidden border border-gray-800 relative group ${!activeVideo ? 'hidden' : ''}`}
+              className={`bg-black w-full aspect-video rounded-2xl shadow-lg overflow-hidden border border-gray-800 relative select-none ${!activeVideo ? 'hidden' : ''}`}
             >
               {activeVideoIsLocked ? (
                 /* Lock screen for non-premium accounts requesting a premium-locked video */
@@ -437,16 +444,26 @@ export default function App() {
               ) : (
                 /* The real iframe Youtube video container */
                 activeVideo && (
-                  <iframe
-                    id="playerIframe"
-                    className="w-full h-full"
-                    src={`https://www.youtube.com/embed/${activeVideo.youtube_id}?autoplay=0&rel=0&modestbranding=1`}
-                    title={activeVideo.video_name}
-                    frameBorder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    sandbox="allow-scripts allow-same-origin allow-presentation"
-                    allowFullScreen
-                  />
+                  <>
+                    <iframe
+                      id="playerIframe"
+                      className="w-full h-full"
+                      src={
+                        activeVideo.youtube_id.startsWith("playlist:")
+                          ? `https://www.youtube.com/embed/videoseries?list=${activeVideo.youtube_id.replace("playlist:", "")}&autoplay=1&modestbranding=1&rel=0`
+                          : `https://www.youtube.com/embed/${activeVideo.youtube_id}?autoplay=1&modestbranding=1&rel=0`
+                      }
+                      title={activeVideo.video_name}
+                      frameBorder="0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                    <div 
+                      className="absolute bottom-0 right-0 w-32 h-14 bg-transparent z-50 pointer-events-auto cursor-default" 
+                      title="External links are disabled"
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                    />
+                  </>
                 )
               )}
             </div>
@@ -635,21 +652,54 @@ export default function App() {
                   </div>
                 </div>
 
+                {/* Lecture Format Filter Row */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center space-x-1 text-[9px] font-black text-slate-400 uppercase tracking-wider font-mono">
+                    <ListVideo className="w-3 h-3" />
+                    <span>Lecture Format</span>
+                  </div>
+                  <div className="flex border border-slate-200 rounded-xl overflow-hidden p-1 bg-slate-50/50">
+                    {[
+                      { label: "All", value: "All" },
+                      { label: "Normal", value: "Normal" },
+                      { label: "Playlists", value: "Playlist" }
+                    ].map((item) => (
+                      <button
+                        key={item.value}
+                        onClick={() => setLectureTypeFilter(item.value as any)}
+                        className={`flex-1 text-center py-1 rounded-lg text-[10px] font-bold transition cursor-pointer ${
+                          lectureTypeFilter === item.value
+                            ? "bg-blue-600 text-white shadow-3xs border border-blue-600"
+                            : "text-slate-400 hover:text-slate-600"
+                        }`}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 {/* Watched Status Filter Row */}
-                <div className="flex border border-slate-200 rounded-xl overflow-hidden p-1 bg-slate-50/50">
-                  {["All", "Completed", "Incomplete"].map((f) => (
-                    <button
-                      key={f}
-                      onClick={() => setCompleteFilter(f)}
-                      className={`flex-1 text-center py-1 rounded-lg text-[10px] font-bold transition cursor-pointer ${
-                        completeFilter === f
-                          ? "bg-white text-slate-800 shadow-3xs border border-slate-200/50"
-                          : "text-slate-400 hover:text-slate-600"
-                      }`}
-                    >
-                      {f}
-                    </button>
-                  ))}
+                <div className="space-y-1.5">
+                  <div className="flex items-center space-x-1 text-[9px] font-black text-slate-400 uppercase tracking-wider font-mono">
+                    <Check className="w-3 h-3" />
+                    <span>Completion Status</span>
+                  </div>
+                  <div className="flex border border-slate-200 rounded-xl overflow-hidden p-1 bg-slate-50/50">
+                    {["All", "Completed", "Incomplete"].map((f) => (
+                      <button
+                        key={f}
+                        onClick={() => setCompleteFilter(f)}
+                        className={`flex-1 text-center py-1 rounded-lg text-[10px] font-bold transition cursor-pointer ${
+                          completeFilter === f
+                            ? "bg-white text-slate-800 shadow-3xs border border-slate-200/50"
+                            : "text-slate-400 hover:text-slate-600"
+                        }`}
+                      >
+                        {f}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
@@ -676,25 +726,74 @@ export default function App() {
                       <p className="text-[10px] text-slate-400 mt-0.5">Try searching another tag!</p>
                     </motion.div>
                   ) : (
-                    filteredVideos.map((video) => {
-                      const log = watchHistory.find((h) => h.video_id === video.youtube_id);
-                      const isComp = log ? log.completed : false;
-
+                    (() => {
+                      const playlists = filteredVideos.filter(v => v.youtube_id.startsWith("playlist:"));
+                      const normals = filteredVideos.filter(v => !v.youtube_id.startsWith("playlist:"));
+                      
                       return (
-                        <VideoItem
-                          key={video.id || video.youtube_id}
-                          video={video}
-                          onPlay={(v) => setActiveVideo(v)}
-                          onDelete={handleVideoDeleted}
-                          onToggleComplete={handleToggleComplete}
-                          onAddToPlaylist={handleAddToPlaylist}
-                          onDownload={handleDownloadCheck}
-                          isCompleted={isComp}
-                          isPremiumUser={user?.is_premium || false}
-                          activeVideoId={activeVideo?.id || activeVideo?.youtube_id}
-                        />
+                        <div className="space-y-6">
+                          {/* Playlists Group */}
+                          {playlists.length > 0 && (
+                            <div className="space-y-2">
+                              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest font-mono flex items-center gap-1.5 px-1">
+                                <span>📂</span>
+                                <span>Course Playlists ({playlists.length})</span>
+                              </h3>
+                              <div className="space-y-2">
+                                {playlists.map((video) => {
+                                  const log = watchHistory.find((h) => h.video_id === video.youtube_id);
+                                  const isComp = log ? log.completed : false;
+                                  return (
+                                    <VideoItem
+                                      key={video.id || video.youtube_id}
+                                      video={video}
+                                      onPlay={(v) => setActiveVideo(v)}
+                                      onDelete={handleVideoDeleted}
+                                      onToggleComplete={handleToggleComplete}
+                                      onAddToPlaylist={handleAddToPlaylist}
+                                      onDownload={handleDownloadCheck}
+                                      isCompleted={isComp}
+                                      isPremiumUser={user?.is_premium || false}
+                                      activeVideoId={activeVideo?.id || activeVideo?.youtube_id}
+                                    />
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Normal Videos Group */}
+                          {normals.length > 0 && (
+                            <div className="space-y-2">
+                              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest font-mono flex items-center gap-1.5 px-1">
+                                <span>📹</span>
+                                <span>Single Lectures ({normals.length})</span>
+                              </h3>
+                              <div className="space-y-2">
+                                {normals.map((video) => {
+                                  const log = watchHistory.find((h) => h.video_id === video.youtube_id);
+                                  const isComp = log ? log.completed : false;
+                                  return (
+                                    <VideoItem
+                                      key={video.id || video.youtube_id}
+                                      video={video}
+                                      onPlay={(v) => setActiveVideo(v)}
+                                      onDelete={handleVideoDeleted}
+                                      onToggleComplete={handleToggleComplete}
+                                      onAddToPlaylist={handleAddToPlaylist}
+                                      onDownload={handleDownloadCheck}
+                                      isCompleted={isComp}
+                                      isPremiumUser={user?.is_premium || false}
+                                      activeVideoId={activeVideo?.id || activeVideo?.youtube_id}
+                                    />
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       );
-                    })
+                    })()
                   )}
                 </AnimatePresence>
               </div>
