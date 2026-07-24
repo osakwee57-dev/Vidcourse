@@ -15,6 +15,7 @@ import AddVideoModal from "./components/AddVideoModal";
 import ProfileDrawer from "./components/ProfileDrawer";
 import VideoItem from "./components/VideoItem";
 import NotesSection from "./components/NotesSection";
+import { PwaInstallBanner } from "./components/PwaInstallBanner";
 
 export default function App() {
   // Authentication states
@@ -339,6 +340,9 @@ export default function App() {
   return (
     <div className="bg-[#F1F5F9] min-h-screen font-sans flex flex-col antialiased text-slate-850 selection:bg-blue-100 selection:text-blue-950">
       
+      {/* PWA Install Notification Banner */}
+      <PwaInstallBanner />
+
       {/* 1. Auth Overlay (Blocking modal if user is not verified yet) */}
       {!user && <AuthModal onAuthSuccess={handleAuthSuccess} />}
 
